@@ -1,5 +1,0 @@
-telebot
-PIL 
-requests
-io 
-os

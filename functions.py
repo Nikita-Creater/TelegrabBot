@@ -83,14 +83,14 @@ def send_task_image(bot, call, lesson_number):
     markup = types.InlineKeyboardMarkup()
     if lesson_number < 3:
         start_button = types.InlineKeyboardButton(
-            text="Начать выполнение заданий", callback_data=f"start_task_{lesson_number}"
+            text="Начать выполнение задания", callback_data=f"start_task_{lesson_number}"
         )
         markup.add(start_button)
     elif lesson_number == 3:
-        registration_button = types.InlineKeyboardButton(
-            text="Пройти регистрацию", url=FORM_LINK
+        start_button = types.InlineKeyboardButton(
+            text="Начать выполнение задания", callback_data=f"start_task_{lesson_number}"
         )
-        markup.add(registration_button)
+        markup.add(start_button)
     with open(globals()[f'TASK_IMAGE_{lesson_number}_PATH'], "rb") as task_image:
         bot.send_photo(call.message.chat.id, task_image, caption=globals()[f'TASK_{lesson_number}_DESCRIPTION'], reply_markup=markup)
 
@@ -147,16 +147,57 @@ def process_answer(bot, message):
         current_question_data["answers"].append(
             f"{globals()[f'QUESTION_{lesson_number}_3']} {message.text}"
         )
+        if lesson_number == 3:
+            bot.send_message(
+                user_id,
+                globals()[f'QUESTION_{lesson_number}_4']
+            )
+            current_question_data["current"] = 4
+        else:
+            user_name = message.from_user.username
+            if not user_name:
+                user_name = message.from_user.first_name
+
+            bot.send_message(
+                ADMIN_ID_MAIN,
+                f"Ответы пользователя @{user_name}:\n" + "\n".join(current_question_data["answers"]),
+            )
+            bot.send_message(user_id, "Спасибо! Ваши ответы отправлены на проверку!")
+            time.sleep(30)  # Пауза в 30 секунд
+            send_voice_message(bot, user_id, lesson_number)
+            time.sleep(2)  # Пауза после голосового сообщения
+            if lesson_number < 3:
+                send_next_lesson_presentation(bot, user_id, lesson_number + 1)
+            del user_question_state[user_id]
+
+    elif current_question == 4:
+        current_question_data["answers"].append(
+            f"{globals()[f'QUESTION_{lesson_number}_4']} {message.text}"
+        )
+        bot.send_message(
+            user_id,
+            globals()[f'QUESTION_{lesson_number}_5']
+        )
+        current_question_data["current"] = 5
+
+    elif current_question == 5:
+        current_question_data["answers"].append(
+            f"{globals()[f'QUESTION_{lesson_number}_5']} {message.text}"
+        )
 
         user_name = message.from_user.username
         if not user_name:
             user_name = message.from_user.first_name
 
         bot.send_message(
-            ADMIN_ID_ALT,
+            ADMIN_ID_MAIN,
             f"Ответы пользователя @{user_name}:\n" + "\n".join(current_question_data["answers"]),
         )
-        bot.send_message(user_id, "Спасибо! Ваши ответы отправлены на проверку!")
+        bot.send_message(
+            ADMIN_ID_MAIN_2,
+            f"Ответы пользователя @{user_name}:\n" + "\n".join(current_question_data["answers"]),
+        )
+        # bot.send_message(user_id, "Спасибо! Ваши ответы отправлены на проверку!")
         time.sleep(30)  # Пауза в 30 секунд
         send_voice_message(bot, user_id, lesson_number)
         time.sleep(2)  # Пауза после голосового сообщения
@@ -172,6 +213,8 @@ def send_voice_message(bot, user_id, lesson_number):
         voice_path = VOICE_1_PATH
     elif lesson_number == 2:
         voice_path = VOICE_2_PATH
+    # elif lesson_number == 3:
+    #     voice_path = VOICE_3_PATH
     else:
         return
 
@@ -181,7 +224,12 @@ def send_voice_message(bot, user_id, lesson_number):
 def send_next_lesson_presentation(bot, user_id, lesson_number):
     """
     Отправляет фото и текст, представляющие следующий урок, а также кнопку для перехода к следующему уроку.
+    Если это последний урок, отправляет сообщение о завершении.
     """
+    if lesson_number > 3:
+        bot.send_message(user_id, "Спасибо за успешное прохождение всех уроков!")
+        return
+
     markup = types.InlineKeyboardMarkup()
     lesson_button = types.InlineKeyboardButton(
         text=f"Перейти к {lesson_number} уроку", callback_data=f"start_lesson_{lesson_number}"

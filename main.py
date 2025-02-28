@@ -34,3 +34,5 @@ if __name__ == "__main__":
             time.sleep(5)
         finally:
             print("Бот завершил работу.")
+
+# testik dlya Nikitosika

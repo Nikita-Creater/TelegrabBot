@@ -34,3 +34,4 @@ def setup_bot(bot):
     @bot.message_handler(commands=["help"])
     def send_help(message):
         bot.send_message(message.chat.id, "Используйте команды: /start, /help.")
+
